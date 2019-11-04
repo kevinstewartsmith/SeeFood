@@ -31,6 +31,12 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
         if let userPickedImage =  info[UIImagePickerController.InfoKey.originalImage] as? UIImage {
             
             imageView.image = userPickedImage
+            
+            guard let ciImage = CIImage(image: userPickedImage)else {
+                fatalError("Could not convert UIImage to a CIImage")
+            }
+            
+            detect(image: ciImage)
         }
         
         imagePicker.dismiss(animated: true, completion: nil) 
@@ -38,6 +44,34 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
         
         
     }
+    
+    func detect(image: CIImage) {
+        //This model classifies our image
+        guard let model = try? VNCoreMLModel(for: Inceptionv3().model) else{
+            fatalError("Loading CoreML Model Failed.")
+        }
+        
+        let request = VNCoreMLRequest(model: model) { (request, error) in
+            guard let results = request.results as? [VNClassificationObservation] else {
+                fatalError("Could not request results from ML model")
+            }
+            
+            print(results)
+        }
+        
+        let handler = VNImageRequestHandler(ciImage: image)
+        
+        do{
+            try handler.perform([request])
+        } catch {
+            print(error)
+        }
+        
+        
+        
+        
+    }
+    
     
     @IBAction func cameraTapped(_ sender: UIBarButtonItem) {
         present(imagePicker, animated: true, completion: nil)
